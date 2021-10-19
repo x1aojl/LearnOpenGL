@@ -1,6 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <math.h>
+#include <stb_image.h>
 
 #define WIDTH 800           // 窗口宽度
 #define HEIGHT 600          // 窗口高度
@@ -9,25 +9,35 @@
 // 顶点着色器源码
 const char *vertexShaderSource =
     "#version 330 core\n"
+
     "layout(location = 0) in vec3 aPos;\n"
     "layout(location = 1) in vec3 aColor;\n"
+    "layout(location = 2) in vec2 aTexCoord;\n"
+
     "out vec4 ourColor;\n"
+    "out vec2 texCoord;\n"
 
     "void main()\n"
     "{\n"
     "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
     "    ourColor = vec4(aColor, 1.0f);\n"
+    "    texCoord = aTexCoord;\n"
     "}\n";
 
 // 片断着色器源码
 const char *fragmentShaderSource =
     "#version 330 core\n"
+
     "in vec4 ourColor;\n"
+    "in vec2 texCoord;\n"
+
+    "uniform sampler2D ourTexture;\n"
+
     "out vec4 fragColor;\n"
 
     "void main()\n"
     "{\n"
-    "    fragColor = ourColor;\n"
+    "    fragColor = texture(ourTexture, texCoord) * ourColor;\n"
     "}\n";
 
 // 窗口尺寸变化的回调函数
@@ -91,11 +101,11 @@ int main()
 
     // 初始化顶点数据
     float vertices[] = {
-        // ---- 位置 ----   // ---- 颜色 ----
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // 右上
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // 右下
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // 左下
-        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, // 左上
+        // ---- 位置 ----   // --- 颜色 ---   // 纹理坐标
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 右上
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 右下
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 左下
+        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f  // 左上
     };
 
     // 初始化索引数组
@@ -122,16 +132,27 @@ int main()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // 设置顶点位置属性指针
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
     // 设置顶点颜色属性指针
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // 设置顶点颜色属性指针
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
-    glBindVertexArray(0);
+    // 创建并绑定纹理
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // 加载并生成纹理
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load("../Resource/container.jpg", &width, &height, &nrChannels, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
     // 渲染循环
     while (! glfwWindowShouldClose(window))
@@ -139,17 +160,8 @@ int main()
         // 使用着色器程序
         glUseProgram(shaderProgram);
 
-        // 获取运行时间
-        float time = glfwGetTime();
-
-        // 获取时间的sin值
-        float value = sin(time) * 0.5f + 0.5f;
-
-        // 获取unform变量ourColor的位置
-        int veretxColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-
-        // 设置uniform变量ourColor的值
-        glUniform4f(veretxColorLocation, 0.0f, value, value, 1.0f);
+        // 绑定纹理
+        glBindTexture(GL_TEXTURE_2D, texture);
 
         // 绑定顶点数组对象
         glBindVertexArray(VAO);
@@ -177,6 +189,7 @@ int main()
     glDeleteProgram(shaderProgram);
 
     // 释放资源
+    stbi_image_free(data);
     glfwTerminate();
 
     return 0;
