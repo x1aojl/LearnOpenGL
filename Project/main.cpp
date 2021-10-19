@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <math.h>
 
 #define WIDTH 800           // 窗口宽度
 #define HEIGHT 600          // 窗口高度
@@ -18,11 +19,12 @@ const char *vertexShaderSource =
 // 片断着色器源码
 const char *fragmentShaderSource =
     "#version 330 core\n"
+    "uniform vec4 ourColor;\n"
     "out vec4 fragColor;\n"
 
     "void main()\n"
     "{\n"
-    "    fragColor = vec4(0.0f, 1.0f, 1.0f, 1.0f);\n"
+    "    fragColor = ourColor;\n"
     "}\n";
 
 // 窗口尺寸变化的回调函数
@@ -128,6 +130,18 @@ int main()
     {
         // 使用着色器程序
         glUseProgram(shaderProgram);
+
+        // 获取运行时间
+        float time = glfwGetTime();
+
+        // 获取时间的sin值
+        float value = sin(time) * 0.5f + 0.5f;
+
+        // 获取unform变量ourColor的位置
+        int veretxColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+
+        // 设置uniform变量ourColor的值
+        glUniform4f(veretxColorLocation, 0.0f, value, value, 1.0f);
 
         // 绑定顶点数组对象
         glBindVertexArray(VAO);
