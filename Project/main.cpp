@@ -1,6 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #define WIDTH 800           // 窗口宽度
 #define HEIGHT 600          // 窗口高度
@@ -9,6 +12,8 @@
 // 顶点着色器源码
 const char *vertexShaderSource =
     "#version 330 core\n"
+
+    "uniform mat4 transform;\n"
 
     "layout(location = 0) in vec3 aPos;\n"
     "layout(location = 1) in vec3 aColor;\n"
@@ -19,7 +24,7 @@ const char *vertexShaderSource =
 
     "void main()\n"
     "{\n"
-    "    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+    "    gl_Position = transform * vec4(aPos, 1.0);\n"
     "    ourColor = vec4(aColor, 1.0f);\n"
     "    texCoord = aTexCoord;\n"
     "}\n";
@@ -157,8 +162,19 @@ int main()
     // 渲染循环
     while (! glfwWindowShouldClose(window))
     {
+        // 清屏
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
         // 使用着色器程序
         glUseProgram(shaderProgram);
+
+        // 矩阵变换: 平移、旋转
+        glm::mat4 transform;
+        transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+        transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        unsigned int transformLocation = glGetUniformLocation(shaderProgram, "transform");
+        glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(transform));
 
         // 绑定纹理
         glBindTexture(GL_TEXTURE_2D, texture);
